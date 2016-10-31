@@ -1,0 +1,6 @@
+[package]
+name = "rustyraft"
+version = "0.1.0"
+authors = ["Lucio Franco <lucio.franco@du.edu>"]
+
+[dependencies]
