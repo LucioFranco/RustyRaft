@@ -4,3 +4,7 @@ version = "0.1.0"
 authors = ["Lucio Franco <lucio.franco@du.edu>"]
 
 [dependencies]
+tarpc = { git = "https://github.com/google/tarpc" }
+tarpc-plugins = { git = "https://github.com/google/tarpc" }
+futures = "*"
+tokio-core = "*"
