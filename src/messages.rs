@@ -6,14 +6,14 @@ use std::io as stdio;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
     pub version: i8,
-    pub message: MessageType
+    pub message: MessageType,
 }
 
 impl Message {
     pub fn new(message: MessageType) -> Message {
         Message {
             version: 1,
-            message: message
+            message: message,
         }
     }
 
@@ -40,11 +40,11 @@ impl Message {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum MessageType {
-    Connect(Connect)
+    Connect(Connect),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Connect {
     pub id: i8,
-    pub magic_number: i8
+    pub magic_number: i8,
 }
