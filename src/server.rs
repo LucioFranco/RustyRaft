@@ -62,12 +62,16 @@ impl Server {
             })
             .map_err(|e| panic!("Error: {:?}", e));
 
+        let server = server.clone();
         handle.spawn_fn(move || {
             // TODO: create raft
 
-            rx.fold((), |_, msg| {
-                println!("Message:{:?}", msg);
 
+            rx.fold((), move |_, msg| {
+                let server = server.borrow_mut();
+
+                println!("Message:{:?}", msg);
+                println!("{:?}", server.id);
                 // TODO: execute actions
 
                 future::ok(())
@@ -130,21 +134,36 @@ impl Server {
                 let message = Message::new(MessageType::Connect(connect_msg));
                 let remote = handle.remote();
 
+                let (tx, rx) = mpsc::unbounded::<MessageType>();
+
+                let tx2 = tx.clone();
+
                 let connection = TcpStream::connect(peer, handle)
+                    .map_err(|_| ())
                     // .or_else(move |e| -> TcpStreamNew {
                     //     //let handle = remote.handle().unwrap();
                     //     TcpStream::connect(peer, &remote.handle())
                     // })
                     .and_then(move |stream| {
                         write_all(stream, message.encode().unwrap())
+                            .map_err(|_| ())
+                    });
+
+
+                let writer = connection.and_then(move |(stream, _)| {
+                    let (_, writer) = stream.split();
+
+                    rx.fold(writer, |writer, msg| {
+                        let msg = Message::new(msg).encode().unwrap();
+
+                        let w = write_all(writer, msg).map(|(writer, _)| writer);
+                        w.map_err(|_| ())
                     })
-                    .and_then(|(stream, _)| future::ok(()))
-                    .map_err(|_| ())
-                    .boxed();
+                });
 
-                handle.spawn(connection);
+                handle.spawn(writer.map(|_| ()));
 
-                //self.peers.insert(*id, Connection::new_stream(connection));
+                self.peers.insert(*id, Connection::new(tx2));
             }
         }
     }
