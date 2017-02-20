@@ -11,3 +11,4 @@ bincode = "1.0.0-alpha2"
 serde = "0.9"
 serde_derive = "0.9"
 byteorder = "1.0.0"
+tokio-timer = { git = "https://github.com/tokio-rs/tokio-timer", rev = "d803e55b64ab1cb89d43b6802c6fd4494a570115" }

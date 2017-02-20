@@ -143,13 +143,17 @@ impl Server {
                     .map_err(|_| ())
                     // TODO: better reconnect that retries every so often
                     .or_else(move |e| {
-                        let h = h2.clone();
-                        let p = p2.clone();
+                        match e {
+                            _ => {
+                                let h = h2.clone();
+                                let p = p2.clone();
 
-                        println!("Reconnecting");
+                                println!("Reconnecting");
 
-                        TcpStream::connect(&p, &h)
-                            .map_err(|_| ())
+                                TcpStream::connect(&p, &h)
+                                    .map_err(|_| ())
+                            }
+                        }
                     })
                     .and_then(move |stream| {
                         write_all(stream, message.encode().unwrap())
