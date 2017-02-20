@@ -132,18 +132,25 @@ impl Server {
                     magic_number: 1818,
                 };
                 let message = Message::new(MessageType::Connect(connect_msg));
-                let remote = handle.remote();
 
                 let (tx, rx) = mpsc::unbounded::<MessageType>();
 
                 let tx2 = tx.clone();
+                let h2 = handle.clone();
+                let p2 = peer.clone();
 
                 let connection = TcpStream::connect(peer, handle)
                     .map_err(|_| ())
-                    // .or_else(move |e| -> TcpStreamNew {
-                    //     //let handle = remote.handle().unwrap();
-                    //     TcpStream::connect(peer, &remote.handle())
-                    // })
+                    // TODO: better reconnect that retries every so often
+                    .or_else(move |e| {
+                        let h = h2.clone();
+                        let p = p2.clone();
+
+                        println!("Reconnecting");
+
+                        TcpStream::connect(&p, &h)
+                            .map_err(|_| ())
+                    })
                     .and_then(move |stream| {
                         write_all(stream, message.encode().unwrap())
                             .map_err(|_| ())
