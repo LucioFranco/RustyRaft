@@ -3,7 +3,7 @@ use byteorder::{ReadBytesExt, WriteBytesExt, NetworkEndian};
 use std::io::Cursor;
 use std::io as stdio;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Message {
     pub version: i8,
     pub message: MessageType,
@@ -38,12 +38,12 @@ impl Message {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum MessageType {
     Connect(Connect),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Connect {
     pub id: i8,
     pub magic_number: i8,

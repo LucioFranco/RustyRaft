@@ -1,4 +1,5 @@
 use futures::{Stream, Future};
+use futures::future::{loop_fn, Loop};
 use futures::{stream, future};
 use futures::sync::mpsc;
 
@@ -13,6 +14,7 @@ use std::cell::RefCell;
 use std::io::{self, BufReader};
 use std::iter;
 use tokio_core::io::Io;
+use std::{thread, time};
 
 use connection::Connection;
 use messages::*;
@@ -139,43 +141,64 @@ impl Server {
                 let h2 = handle.clone();
                 let p2 = peer.clone();
 
-                let connection = TcpStream::connect(peer, handle)
-                    .map_err(|_| ())
-                    // TODO: better reconnect that retries every so often
-                    .or_else(move |e| {
-                        match e {
-                            _ => {
-                                let h = h2.clone();
-                                let p = p2.clone();
-
-                                println!("Reconnecting");
-
-                                TcpStream::connect(&p, &h)
-                                    .map_err(|_| ())
-                            }
-                        }
-                    })
-                    .and_then(move |stream| {
-                        write_all(stream, message.encode().unwrap())
-                            .map_err(|_| ())
-                    });
+                let h2 = handle.clone();
 
 
-                let writer = connection.and_then(move |(stream, _)| {
-                    let (_, writer) = stream.split();
+                self.peers.insert(*id, Connection::new(tx)); // TODO: remove function as a method
+                let client = future::loop_fn((), move |_| {
+                    let message = message.clone();
+                    let (tx, rx) = mpsc::unbounded::<MessageType>();
 
-                    rx.fold(writer, |writer, msg| {
-                        let msg = Message::new(msg).encode().unwrap();
 
-                        let w = write_all(writer, msg).map(|(writer, _)| writer);
-                        w.map_err(|_| ())
-                    })
+                    // Run the get_connection function and loop again regardless of its result
+                    Server::get_connection(&p2, rx, message, &h2)
+                        .map(|_| -> Loop<(), ()> { Loop::Continue(()) })
                 });
 
-                handle.spawn(writer.map(|_| ()));
+                handle.spawn(client.map_err(|_| ()));
 
-                self.peers.insert(*id, Connection::new(tx2));
+                // handle.spawn(writer.map(|_| ()));
+
+         
             }
         }
+    }
+
+
+    fn get_connection(peer: &SocketAddr,
+                      rx: mpsc::UnboundedReceiver<MessageType>,
+                      inital_message: Message,
+                      handle: &Handle)
+                      -> Box<Future<Item = (), Error = io::Error>> {
+        let tcp = TcpStream::connect(peer, handle).map_err(|_| ());
+
+        let connection = tcp.and_then(move |stream| {
+                println!("Sending Connect Preamble");
+
+                write_all(stream, inital_message.encode().unwrap()).map_err(|_| ())
+            })
+            .map_err(|_| ());
+
+
+        let writer = connection.and_then(move |(stream, _)| {
+            let (_, writer) = stream.split();
+
+            rx.fold(writer, |writer, msg| {
+                    let msg = Message::new(msg).encode().unwrap();
+
+                    let w = write_all(writer, msg).map(|(writer, _)| writer);
+                    w.map_err(|_| ())
+                })
+                .map(|_| ())
+        });
+
+        let client = writer.or_else(|_| {
+            println!("connection refuse");
+            thread::sleep(time::Duration::from_millis(100));
+            future::ok(())
+            // Err(io::Error::new(io::ErrorKind::Other, "connection refuse"))
+        });
+
+        client.boxed()
     }
 }
