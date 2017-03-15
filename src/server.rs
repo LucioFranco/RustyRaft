@@ -7,6 +7,9 @@ use tokio_core::net::{TcpListener, TcpStream, TcpStreamNew};
 use tokio_core::io::{write_all, read_exact};
 use tokio_core::reactor::{Core, Handle, Remote};
 
+use tokio_timer::*;
+
+use std::time::*;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -19,8 +22,8 @@ use std::{thread, time};
 use connection::Connection;
 use messages::*;
 
-type ServerId = i8;
-type ClientId = i8;
+pub type ServerId = i8;
+pub type ClientId = i8;
 
 pub struct Server {
     id: ServerId,
@@ -69,17 +72,28 @@ impl Server {
             // TODO: create raft
 
 
-            rx.fold((), move |_, msg| {
-                let server = server.borrow_mut();
+            // rx.fold((), move |_, msg| {
+            //     let server = server.borrow_mut();
 
-                println!("Message:{:?}", msg);
-                println!("{:?}", server.id);
-                // TODO: execute actions
+            //     println!("Message:{:?}", msg);
+            //     println!("{:?}", server.id);
+            //     // TODO: execute actions
 
-                future::ok(())
+            //     future::ok(())
+            // })
+            println!("Starting timer");
+            loop_fn((), |_| {
+                Timer::default()
+                    .sleep(Duration::from_millis(100))
+                    .and_then(|_| {
+                        println!("ACTION!");
+                        future::ok(Loop::Continue(()))
+                    })
+                    .map_err(|e| println!("Timer Error: {:?}", e))
             })
         });
 
+        println!("Listening...");
         core.run(s).unwrap();
     }
 
@@ -159,7 +173,7 @@ impl Server {
 
                 // handle.spawn(writer.map(|_| ()));
 
-         
+
             }
         }
     }
@@ -170,26 +184,31 @@ impl Server {
                       inital_message: Message,
                       handle: &Handle)
                       -> Box<Future<Item = (), Error = io::Error>> {
-        let tcp = TcpStream::connect(peer, handle).map_err(|_| ());
+        let tcp = TcpStream::connect(peer, handle)
+            .map_err(|e| println!("Error tcp connect: {:?}", e));
 
         let connection = tcp.and_then(move |stream| {
                 println!("Sending Connect Preamble");
 
-                write_all(stream, inital_message.encode().unwrap()).map_err(|_| ())
+                write_all(stream, inital_message.encode().unwrap())
+                    .map_err(|e| println!("StdError: {:?}", e))
             })
-            .map_err(|_| ());
+            .map_err(|e| println!("Error: {:?}", e));
 
 
         let writer = connection.and_then(move |(stream, _)| {
             let (_, writer) = stream.split();
 
-            rx.fold(writer, |writer, msg| {
-                    let msg = Message::new(msg).encode().unwrap();
+            println!("Entering wait period");
+            // rx.fold(writer, |writer, msg| {
+            //         let msg = Message::new(msg).encode().unwrap();
 
-                    let w = write_all(writer, msg).map(|(writer, _)| writer);
-                    w.map_err(|_| ())
-                })
-                .map(|_| ())
+            //         let w = write_all(writer, msg).map(|(writer, _)| writer);
+            //         w.map_err(|_| ())
+            //     })
+            //     .map(|_| ())
+
+            loop_fn((), |_| future::ok(Loop::Continue(())))
         });
 
         let client = writer.or_else(|_| {

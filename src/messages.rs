@@ -3,6 +3,48 @@ use byteorder::{ReadBytesExt, WriteBytesExt, NetworkEndian};
 use std::io::Cursor;
 use std::io as stdio;
 
+use server::{ServerId};
+use raft::{Term};
+use log::LogIndex;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum MessageType {
+    Connect(Connect),
+
+    AppendEntries(AppendEntries),
+    AppendEntriesResponse(AppendEntriesResponse)
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Connect {
+    pub id: i8,
+    pub magic_number: i8,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AppendEntries {
+    pub term: Term,
+    pub leader_id: ServerId,
+    pub prev_log_index: LogIndex,
+    pub prev_log_term: Term,
+    pub entries: Vec<(Term, Vec<u8>)>,
+    pub leader_commit_index: LogIndex
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AppendEntriesResponse {
+    pub term: Term,
+    pub success: bool
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RequestVote {
+    pub term: Term,
+    pub candidate_id: ServerId,
+    pub last_log_index: LogIndex,
+    pub last_log_term: Term
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Message {
     pub version: i8,
@@ -36,15 +78,4 @@ impl Message {
     pub fn decode(bytes: Vec<u8>) -> Result<Message, Box<ErrorKind>> {
         deserialize(&bytes)
     }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum MessageType {
-    Connect(Connect),
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Connect {
-    pub id: i8,
-    pub magic_number: i8,
 }

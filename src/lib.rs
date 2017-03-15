@@ -8,11 +8,16 @@ extern crate byteorder;
 
 extern crate futures;
 extern crate tokio_core;
-extern crate tokio_proto;
+extern crate tokio_timer;
 
 mod server;
 mod client;
 mod messages;
 mod connection;
+mod raft;
+mod state;
+
+// Persistent Log
+mod log;
 
 pub use server::Server;
