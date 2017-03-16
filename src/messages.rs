@@ -9,10 +9,16 @@ use log::LogIndex;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum MessageType {
+    // Connect Preamble
     Connect(Connect),
 
+    // AppendEntries/Heartbeat message
     AppendEntries(AppendEntries),
-    AppendEntriesResponse(AppendEntriesResponse)
+    AppendEntriesResponse(AppendEntriesResponse),
+
+    // Request vote messages
+    RequestVote(RequestVote),
+    RequestVoteResponse(RequestVoteResponse),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -43,6 +49,12 @@ pub struct RequestVote {
     pub candidate_id: ServerId,
     pub last_log_index: LogIndex,
     pub last_log_term: Term
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RequestVoteResponse {
+    pub term: Term,
+    pub vote_granted: bool
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

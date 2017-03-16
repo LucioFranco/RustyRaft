@@ -20,10 +20,22 @@ pub struct Actions {
 }
 
 pub struct Raft {
+    // Our current ServerId
     id: ServerId,
+
+    // Mapping of peer ServerId's to their socket address
     peers: HashMap<ServerId, SocketAddr>,
+
+    // The current state within the consensus state machine
     state: ConsensusState,
+
+    // The current term we are on
     current_term: Term,
+
+    // ServerId of candidate that received vote in current_term
+    voted_for: Option<ServerId>,
+
+    // Metadata about our log position
     commit_index: LogIndex,
     last_applied: LogIndex,
 }
@@ -33,8 +45,9 @@ impl Raft {
         Raft {
             id: id,
             peers: peers,
-            state: ConsensusState::Candidate(CandidateState::new()),
+            state: ConsensusState::Follower(FollowerState::new()),
             current_term: 0,
+            voted_for: None,
             commit_index: 0,
             last_applied: 0,
         }
@@ -53,6 +66,8 @@ impl Raft {
                               actions: &mut Actions) {
         match message {
             MessageType::AppendEntries(msg) => self.append_entries(from, msg, actions),
+
+            MessageType::RequestVote(msg) => self.request_vote(from, msg, actions),
 
             _ => panic!("Wrong message received"),
         };
@@ -106,7 +121,45 @@ impl Raft {
             // TODO: figure out if the other states need to handle anything
             // with AppenedEntries
 
-            _ => panic!("State not implemented"),
+            _ => panic!("State not implemented for append entries"),
+        }
+    }
+
+    fn request_vote(&mut self, from: ServerId, message: messages::RequestVote, actions: &mut Actions) {
+        let leader_term = message.term;
+        let current_term = self.current_term;
+
+        match self.state {
+            ConsensusState::Follower(ref mut state) => {
+                // Check if the proposed term is less than our current term,
+                // this means that the server requesting the vote is out of sync
+                if leader_term < current_term {
+                    let false_message = Message::new(MessageType::RequestVoteResponse(
+                        messages::RequestVoteResponse {
+                            term: current_term,
+                            vote_granted: false
+                        }
+                    ));
+                    actions.peer_messages.push((from, false_message));
+                    return;
+                }
+
+                let vote_granted_message = Message::new(MessageType::RequestVoteResponse(
+                    messages::RequestVoteResponse {
+                        term: current_term,
+                        vote_granted: true,
+                    }
+                ));
+
+                // TODO: figure out what this check actually does...
+                if let Some(candidate_id) = self.voted_for {
+                    actions.peer_messages.push((from, vote_granted_message));
+                } else {
+                    actions.peer_messages.push((from, vote_granted_message));
+                }
+            }
+
+            _ => panic!("State not implemented for request vote"),
         }
     }
 }
