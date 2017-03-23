@@ -153,6 +153,7 @@ impl Raft {
 
                 // TODO: figure out what this check actually does...
                 if let Some(candidate_id) = self.voted_for {
+                    // TODO: update voted for
                     actions.peer_messages.push((from, vote_granted_message));
                 } else {
                     actions.peer_messages.push((from, vote_granted_message));
