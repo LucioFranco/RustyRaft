@@ -21,3 +21,4 @@ mod state;
 mod log;
 
 pub use server::Server;
+pub use log::Log;

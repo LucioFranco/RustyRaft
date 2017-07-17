@@ -40,11 +40,11 @@ impl Connection {
         // TODO: figure out how to make this return TcpStreamNew
 
 
-        // loop_fn(TcpStream::connect(peer, handle), |_| {
-        //     TcpStream::connect(peer, handle)
-        //         .map(|stream| -> Loop<TcpStream, TcpStreamNew> {
-        //             Loop::Break(stream)
-        //         })
-        // })
+        loop_fn(TcpStream::connect(peer, handle), |_| {
+            TcpStream::connect(peer, handle)
+                .map(|stream| -> Loop<TcpStream, TcpStreamNew> {
+                    Loop::Break(stream)
+                })
+        });
     }
 }

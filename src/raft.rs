@@ -2,7 +2,7 @@ use connection::Connection;
 use server::{ServerId, ClientId};
 use state::{self, ConsensusState, LeaderState, CandidateState, FollowerState};
 use messages::{self, Message, MessageType};
-use log::LogIndex;
+use log::{Log, LogIndex};
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -19,7 +19,7 @@ pub struct Actions {
     pub client_messages: Vec<(ClientId, Message)>, // TODO: add timeout
 }
 
-pub struct Raft {
+pub struct Raft<L> {
     // Our current ServerId
     id: ServerId,
 
@@ -28,6 +28,8 @@ pub struct Raft {
 
     // The current state within the consensus state machine
     state: ConsensusState,
+
+    log: L,
 
     // The current term we are on
     current_term: Term,
@@ -40,12 +42,13 @@ pub struct Raft {
     last_applied: LogIndex,
 }
 
-impl Raft {
-    pub fn new(id: ServerId, peers: HashMap<ServerId, SocketAddr>) -> Raft {
+impl<L> Raft<L> where L: Log {
+    pub fn new(id: ServerId, peers: HashMap<ServerId, SocketAddr>, log: L) -> Raft<L> {
         Raft {
             id: id,
             peers: peers,
             state: ConsensusState::Follower(FollowerState::new()),
+            log: log,
             current_term: 0,
             voted_for: None,
             commit_index: 0,

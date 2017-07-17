@@ -22,8 +22,8 @@ use std::{thread, time};
 use connection::Connection;
 use messages::*;
 
-pub type ServerId = i8;
-pub type ClientId = i8;
+pub type ServerId = u8;
+pub type ClientId = u8;
 
 pub struct Server {
     id: ServerId,
@@ -32,7 +32,7 @@ pub struct Server {
 }
 
 impl Server {
-    fn new(id: ServerId, peers: &HashMap<i8, SocketAddr>, core: &mut Core) {
+    fn new(id: ServerId, peers: &HashMap<u8, SocketAddr>, core: &mut Core) {
 
         let addr = peers.get(&id).unwrap();
         let handle = &core.handle();
@@ -84,7 +84,7 @@ impl Server {
             println!("Starting timer");
             loop_fn((), |_| {
                 Timer::default()
-                    .sleep(Duration::from_millis(100))
+                    .sleep(Duration::from_millis(1000))
                     .and_then(|_| {
                         println!("ACTION!");
                         future::ok(Loop::Continue(()))
@@ -130,7 +130,7 @@ impl Server {
                     future::ok(reader)
                 })
             })
-            .map_err(|_| ())
+            .map_err(|e| println!("Error: {:?}", e))
             .map(|_| ());
 
         socket_reader.boxed()
@@ -163,13 +163,15 @@ impl Server {
                     let message = message.clone();
                     let (tx, rx) = mpsc::unbounded::<MessageType>();
 
-
                     // Run the get_connection function and loop again regardless of its result
                     Server::get_connection(&p2, rx, message, &h2)
-                        .map(|_| -> Loop<(), ()> { Loop::Continue(()) })
+                        .map(|_| -> Loop<(), ()> {
+                            println!("HERE");
+                            Loop::Continue(())
+                        })
                 });
 
-                handle.spawn(client.map_err(|_| ()));
+                handle.spawn(client.map_err(|e| println!("Error: {:?}", e)));
 
                 // handle.spawn(writer.map(|_| ()));
 
@@ -184,6 +186,7 @@ impl Server {
                       inital_message: Message,
                       handle: &Handle)
                       -> Box<Future<Item = (), Error = io::Error>> {
+        println!("Connecting to peer {:?}", &peer);
         let tcp = TcpStream::connect(peer, handle)
             .map_err(|e| println!("Error tcp connect: {:?}", e));
 
@@ -212,7 +215,7 @@ impl Server {
         });
 
         let client = writer.or_else(|_| {
-            println!("connection refuse");
+            println!("connection refused");
             thread::sleep(time::Duration::from_millis(100));
             future::ok(())
             // Err(io::Error::new(io::ErrorKind::Other, "connection refuse"))

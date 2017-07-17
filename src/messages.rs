@@ -23,7 +23,7 @@ pub enum MessageType {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Connect {
-    pub id: i8,
+    pub id: u8,
     pub magic_number: i8,
 }
 

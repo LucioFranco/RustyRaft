@@ -25,5 +25,5 @@ fn main() {
     peers.insert(1, "localhost:10000".to_socket_addrs().unwrap().next().unwrap());
     peers.insert(2, "localhost:10001".to_socket_addrs().unwrap().next().unwrap());
 
-    Server::run(i8::from_str(&id).unwrap(), &peers, &mut core);
+    Server::run(u8::from_str(&id).unwrap(), &peers, &mut core);
 }
