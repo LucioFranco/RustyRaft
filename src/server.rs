@@ -106,31 +106,35 @@ impl Server {
 
         let iter = stream::iter(iter::repeat(()).map(Ok::<(), io::Error>));
         let socket_reader = iter.fold(reader, move |reader, _| {
+            use std;
+            std::process::exit(1);
                 let size = vec![0, 0];
                 let tx = tx.clone();
 
                 let bytes = read_exact(reader, size).and_then(|(reader, len)| {
+                    println!("reading");
                     let len = Message::get_len(len).unwrap();
-                    let mut bytes = Vec::with_capacity(len as usize);
+                    let mut arr = Vec::with_capacity((len - 1) as usize);
 
                     for i in 0..len {
-                        bytes.push(0);
+                        arr.push(0);
                     }
-
-                    read_exact(reader, bytes)
+                    println!("hello");
+                    read_exact(reader, arr)
                 });
 
                 bytes.and_then(move |(reader, bytes)| {
                     let msg = Message::decode(bytes).unwrap();
-                    println!("{:?}", msg);
+                    println!("Incoming message: {:?}", msg.message);
 
                     let tx = tx.clone();
                     tx.send(msg.message);
+                    println!("sent message");
 
                     future::ok(reader)
                 })
             })
-            .map_err(|e| println!("Error: {:?}", e))
+            .map_err(|e| println!("Some Error: {:?}", e))
             .map(|_| ());
 
         socket_reader.boxed()
@@ -165,10 +169,7 @@ impl Server {
 
                     // Run the get_connection function and loop again regardless of its result
                     Server::get_connection(&p2, rx, message, &h2)
-                        .map(|_| -> Loop<(), ()> {
-                            println!("HERE");
-                            Loop::Continue(())
-                        })
+                        .map(|_| -> Loop<(), ()> { Loop::Continue(()) })
                 });
 
                 handle.spawn(client.map_err(|e| println!("Error: {:?}", e)));
@@ -203,20 +204,18 @@ impl Server {
             let (_, writer) = stream.split();
 
             println!("Entering wait period");
-            // rx.fold(writer, |writer, msg| {
-            //         let msg = Message::new(msg).encode().unwrap();
+            rx.fold(writer, |writer, msg| {
+                    let msg = Message::new(msg).encode().unwrap();
 
-            //         let w = write_all(writer, msg).map(|(writer, _)| writer);
-            //         w.map_err(|_| ())
-            //     })
-            //     .map(|_| ())
-
-            loop_fn((), |_| future::ok(Loop::Continue(())))
+                    let w = write_all(writer, msg).map(|(writer, _)| writer);
+                    w.map_err(|_| ())
+                })
+                .map(|_| ())
         });
 
         let client = writer.or_else(|_| {
             println!("connection refused");
-            thread::sleep(time::Duration::from_millis(100));
+            thread::sleep(time::Duration::from_millis(5000));
             future::ok(())
             // Err(io::Error::new(io::ErrorKind::Other, "connection refuse"))
         });
