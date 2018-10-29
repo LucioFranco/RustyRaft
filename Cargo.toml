@@ -9,4 +9,6 @@ tokio = "0.1"
 bincode = "1.0"
 serde = "1.0"
 serde_derive = "1.0"
+bytes = "0.4"
 byteorder = "1.0.0"
+uuid = { version = "0.7", features = ["serde", "v4"] }

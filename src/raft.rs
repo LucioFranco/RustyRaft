@@ -1,15 +1,14 @@
 use connection::Connection;
-//use server::{ServerId, ClientId};
 use log::{Log, LogIndex};
 use messages::{self, Message, MessageType};
+use server::ServerId;
 use state::{self, CandidateState, ConsensusState, FollowerState, LeaderState};
 
 use std::cmp::min;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 
-pub type ServerId = u16;
-pub type ClientId = u16;
+type ClientId = u16;
 
 pub type Term = u16;
 

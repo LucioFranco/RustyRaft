@@ -1,13 +1,7 @@
-use bincode::{deserialize, serialize, ErrorKind};
-use byteorder::{NetworkEndian, ReadBytesExt, WriteBytesExt};
-use std::io as stdio;
-use std::io::Cursor;
-
 use log::LogIndex;
 use raft::Term;
-//use server::ServerId;
-
-type ServerId = u16;
+use server::ServerId;
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum MessageType {
@@ -25,7 +19,7 @@ pub enum MessageType {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Connect {
-    pub id: u8,
+    pub id: Uuid,
     pub magic_number: i8,
 }
 
@@ -71,25 +65,5 @@ impl Message {
             version: 1,
             message: message,
         }
-    }
-
-    pub fn encode(self) -> Result<Vec<u8>, Box<ErrorKind>> {
-        let mut message = serialize(&self)?;
-        let mut bytes = Vec::with_capacity(message.len() + 2);
-
-        bytes.write_u16::<NetworkEndian>(message.len() as u16);
-        bytes.append(&mut message);
-
-        Ok(bytes)
-    }
-
-    pub fn get_len(bytes: Vec<u8>) -> Result<u16, stdio::Error> {
-        let mut rdr = Cursor::new(bytes);
-
-        rdr.read_u16::<NetworkEndian>()
-    }
-
-    pub fn decode(bytes: Vec<u8>) -> Result<Message, Box<ErrorKind>> {
-        deserialize(&bytes)
     }
 }

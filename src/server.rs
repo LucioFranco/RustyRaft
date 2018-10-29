@@ -1,45 +1,44 @@
 use futures::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use futures::Future;
+use futures::{Future, Stream};
 
-use tokio::net::TcpStream;
+use tokio::net::{TcpListener, TcpStream};
 
 use std::collections::HashMap;
 use std::net::{SocketAddr, ToSocketAddrs};
+use std::sync::{Arc, RwLock};
 
 use connection::Connection;
 use messages::{Message, MessageType};
 
 pub type ServerId = u8;
-pub type ClientId = u8;
 
 pub struct Server {
-    id: ServerId,
-    peers: HashMap<ServerId, Connection<MessageType>>,
-    clients: HashMap<ClientId, Connection<MessageType>>,
+    inner: Arc<ServerInner>,
 }
 
 impl Server {
-    fn new(id: ServerId, peers: &HashMap<u8, SocketAddr>) {
-        unimplemented!()
+    fn new(id: ServerId, peers: &HashMap<ServerId, SocketAddr>) -> Self {
+        let inner = ServerInner {
+            id,
+            peers: peers.clone(),
+        };
+
+        Server {
+            inner: Arc::new(inner),
+        }
     }
 
-    fn new_client(&mut self, socket: TcpStream, tx: UnboundedSender<MessageType>) {
-        unimplemented!()
-    }
+    pub fn run(&self) -> impl Future<Item = (), Error = std::io::Error> {
+        let inner = self.inner.clone();
+        let addr = inner.peers.get(&inner.id).unwrap();
 
-    pub fn run(id: ServerId, peers: &HashMap<ServerId, SocketAddr>) {
-        unimplemented!();
-    }
+        let listener = TcpListener::bind(&addr).unwrap();
 
-    fn connect_to_peers(&mut self, peers: &HashMap<ServerId, SocketAddr>) {
-        unimplemented!();
+        listener.incoming().for_each(move |stream| Ok(()))
     }
+}
 
-    fn get_connection(
-        peer: &SocketAddr,
-        rx: UnboundedReceiver<MessageType>,
-        inital_message: Message,
-    ) {
-        unimplemented!()
-    }
+pub struct ServerInner {
+    id: ServerId,
+    peers: HashMap<ServerId, SocketAddr>,
 }
