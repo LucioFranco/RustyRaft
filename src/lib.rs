@@ -1,24 +1,20 @@
-#![feature(conservative_impl_trait)]
-
 #[macro_use]
 extern crate serde_derive;
-extern crate serde;
 extern crate bincode;
 extern crate byteorder;
-
 extern crate futures;
-extern crate tokio_core;
-extern crate tokio_timer;
+extern crate serde;
+extern crate tokio;
 
-mod server;
-mod client;
-mod messages;
+//mod client;
 mod connection;
+mod messages;
 mod raft;
+mod server;
 mod state;
 
 // Persistent Log
 mod log;
 
-pub use server::Server;
 pub use log::Log;
+pub use server::Server;

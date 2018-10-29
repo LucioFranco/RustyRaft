@@ -1,39 +1,37 @@
 use log::LogIndex;
-use server::ServerId;
+//use server::ServerId;
+
+type ServerId = ();
 
 pub enum ConsensusState {
     Leader(LeaderState),
     Follower(FollowerState),
-    Candidate(CandidateState)
+    Candidate(CandidateState),
 }
 
 pub struct LeaderState {
     next_index: Vec<(ServerId, LogIndex)>,
-    match_index: Vec<(ServerId, LogIndex)>
+    match_index: Vec<(ServerId, LogIndex)>,
 }
 
 impl LeaderState {
     pub fn new() -> LeaderState {
         LeaderState {
             next_index: vec![],
-            match_index: vec![]
+            match_index: vec![],
         }
     }
 }
 
-pub struct FollowerState {
-    
-}
+pub struct FollowerState {}
 
 impl FollowerState {
     pub fn new() -> FollowerState {
-         FollowerState {}
+        FollowerState {}
     }
 }
 
-pub struct CandidateState {
-
-}
+pub struct CandidateState {}
 
 impl CandidateState {
     pub fn new() -> CandidateState {

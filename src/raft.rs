@@ -1,12 +1,15 @@
 use connection::Connection;
-use server::{ServerId, ClientId};
-use state::{self, ConsensusState, LeaderState, CandidateState, FollowerState};
-use messages::{self, Message, MessageType};
+//use server::{ServerId, ClientId};
 use log::{Log, LogIndex};
+use messages::{self, Message, MessageType};
+use state::{self, CandidateState, ConsensusState, FollowerState, LeaderState};
 
+use std::cmp::min;
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::cmp::min;
+
+pub type ServerId = u16;
+pub type ClientId = u16;
 
 pub type Term = u16;
 
@@ -42,7 +45,10 @@ pub struct Raft<L> {
     last_applied: LogIndex,
 }
 
-impl<L> Raft<L> where L: Log {
+impl<L> Raft<L>
+where
+    L: Log,
+{
     pub fn new(id: ServerId, peers: HashMap<ServerId, SocketAddr>, log: L) -> Raft<L> {
         Raft {
             id: id,
@@ -63,10 +69,12 @@ impl<L> Raft<L> where L: Log {
         }
     }
 
-    pub fn apply_peer_message(&mut self,
-                              from: ServerId,
-                              message: MessageType,
-                              actions: &mut Actions) {
+    pub fn apply_peer_message(
+        &mut self,
+        from: ServerId,
+        message: MessageType,
+        actions: &mut Actions,
+    ) {
         match message {
             MessageType::AppendEntries(msg) => self.append_entries(from, msg, actions),
 
@@ -76,10 +84,12 @@ impl<L> Raft<L> where L: Log {
         };
     }
 
-    fn append_entries(&mut self,
-                      from: ServerId,
-                      message: messages::AppendEntries,
-                      actions: &mut Actions) {
+    fn append_entries(
+        &mut self,
+        from: ServerId,
+        message: messages::AppendEntries,
+        actions: &mut Actions,
+    ) {
         let leader_term = message.term;
         let current_term = self.current_term;
 
@@ -92,8 +102,9 @@ impl<L> Raft<L> where L: Log {
                     let false_message = Message::new(MessageType::AppendEntriesResponse(
                         messages::AppendEntriesResponse {
                             term: current_term,
-                            success: false
-                        }));
+                            success: false,
+                        },
+                    ));
                     actions.peer_messages.push((leader, false_message));
                     return;
                 }
@@ -116,19 +127,24 @@ impl<L> Raft<L> where L: Log {
                 let success_message = Message::new(MessageType::AppendEntriesResponse(
                     messages::AppendEntriesResponse {
                         term: current_term,
-                        success: true
-                    }));
+                        success: true,
+                    },
+                ));
                 actions.peer_messages.push((leader, success_message))
             }
 
             // TODO: figure out if the other states need to handle anything
             // with AppenedEntries
-
             _ => panic!("State not implemented for append entries"),
         }
     }
 
-    fn request_vote(&mut self, from: ServerId, message: messages::RequestVote, actions: &mut Actions) {
+    fn request_vote(
+        &mut self,
+        from: ServerId,
+        message: messages::RequestVote,
+        actions: &mut Actions,
+    ) {
         let leader_term = message.term;
         let current_term = self.current_term;
 
@@ -140,8 +156,8 @@ impl<L> Raft<L> where L: Log {
                     let false_message = Message::new(MessageType::RequestVoteResponse(
                         messages::RequestVoteResponse {
                             term: current_term,
-                            vote_granted: false
-                        }
+                            vote_granted: false,
+                        },
                     ));
                     actions.peer_messages.push((from, false_message));
                     return;
@@ -151,7 +167,7 @@ impl<L> Raft<L> where L: Log {
                     messages::RequestVoteResponse {
                         term: current_term,
                         vote_granted: true,
-                    }
+                    },
                 ));
 
                 // TODO: figure out what this check actually does...
@@ -172,22 +188,28 @@ impl<L> Raft<L> where L: Log {
 mod test {
     use super::*;
 
+    use log::MemLog;
+
     use std::collections::HashMap;
     use std::net::ToSocketAddrs;
 
     fn gen_peers() -> HashMap<ServerId, SocketAddr> {
         let mut peers = HashMap::new();
-        peers.insert(1,
-                     "localhost:10000".to_socket_addrs().unwrap().next().unwrap());
-        peers.insert(2,
-                     "localhost:10001".to_socket_addrs().unwrap().next().unwrap());
+        peers.insert(
+            1,
+            "localhost:10000".to_socket_addrs().unwrap().next().unwrap(),
+        );
+        peers.insert(
+            2,
+            "localhost:10001".to_socket_addrs().unwrap().next().unwrap(),
+        );
 
         peers
     }
 
     #[test]
     fn init() {
-        let raft = Raft::new(1, gen_peers());
+        let raft = Raft::new(1, gen_peers(), MemLog::default());
 
         let actions = raft.init();
 
@@ -199,7 +221,7 @@ mod test {
 
     #[test]
     fn apply_peer_message() {
-        let mut raft = Raft::new(1, gen_peers());
+        let mut raft = Raft::new(1, gen_peers(), MemLog::default());
 
         let mut actions = raft.init();
 
@@ -213,6 +235,5 @@ mod test {
         }));
 
         raft.apply_peer_message(2, message.message, &mut actions);
-
     }
 }

@@ -1,14 +1,12 @@
 [package]
 name = "rustyraft"
 version = "0.1.0"
-authors = ["Lucio Franco <lucio.franco@du.edu>"]
+authors = ["Lucio Franco <luciofranco14@gmail.com>"]
 
 [dependencies]
-futures = "*"
-tokio-core = "0.1.3"
-tokio-proto = "0.1.0"
-bincode = "1.0.0-alpha2"
-serde = "0.9"
-serde_derive = "0.9"
+futures = "0.1"
+tokio = "0.1"
+bincode = "1.0"
+serde = "1.0"
+serde_derive = "1.0"
 byteorder = "1.0.0"
-tokio-timer = { git = "https://github.com/tokio-rs/tokio-timer", rev = "d803e55b64ab1cb89d43b6802c6fd4494a570115" }

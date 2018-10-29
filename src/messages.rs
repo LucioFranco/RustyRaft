@@ -1,11 +1,13 @@
-use bincode::{SizeLimit, serialize, deserialize, ErrorKind};
-use byteorder::{ReadBytesExt, WriteBytesExt, NetworkEndian};
-use std::io::Cursor;
+use bincode::{deserialize, serialize, ErrorKind};
+use byteorder::{NetworkEndian, ReadBytesExt, WriteBytesExt};
 use std::io as stdio;
+use std::io::Cursor;
 
-use server::{ServerId};
-use raft::{Term};
 use log::LogIndex;
+use raft::Term;
+//use server::ServerId;
+
+type ServerId = u16;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum MessageType {
@@ -34,13 +36,13 @@ pub struct AppendEntries {
     pub prev_log_index: LogIndex,
     pub prev_log_term: Term,
     pub entries: Vec<(Term, Vec<u8>)>,
-    pub leader_commit_index: LogIndex
+    pub leader_commit_index: LogIndex,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AppendEntriesResponse {
     pub term: Term,
-    pub success: bool
+    pub success: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -48,13 +50,13 @@ pub struct RequestVote {
     pub term: Term,
     pub candidate_id: ServerId,
     pub last_log_index: LogIndex,
-    pub last_log_term: Term
+    pub last_log_term: Term,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RequestVoteResponse {
     pub term: Term,
-    pub vote_granted: bool
+    pub vote_granted: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -72,7 +74,7 @@ impl Message {
     }
 
     pub fn encode(self) -> Result<Vec<u8>, Box<ErrorKind>> {
-        let mut message = serialize(&self, SizeLimit::Infinite)?;
+        let mut message = serialize(&self)?;
         let mut bytes = Vec::with_capacity(message.len() + 2);
 
         bytes.write_u16::<NetworkEndian>(message.len() as u16);
